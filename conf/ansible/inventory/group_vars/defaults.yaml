@@ -1,0 +1,11 @@
+---
+aws:
+  region: ap-southeast-2
+  resources:
+    stack_name: user-aws-resources-stack
+    sandpit:
+      vpc_id: vpc-2fc3014b
+      create_s3_bucket_artifacts: true
+      s3_bucket_artifacts: aem-opencloud-artifacts
+      route53_hostedzone: aemopencloud.cms.
+      corp_network_cidr: '1.2.3.4/32'

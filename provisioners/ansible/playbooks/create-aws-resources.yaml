@@ -1,0 +1,23 @@
+---
+
+- name: Create user AWS resources stack
+  hosts: all
+  gather_facts: no
+  connection: local
+
+  tasks:
+
+    - name: Create AWS resources stack
+      cloudformation:
+        stack_name: "{{ stack_prefix }}-{{ aws.resources.stack_name }}"
+        region: "{{ aws.region }}"
+        state: present
+        disable_rollback: true
+        template: "../../../templates/cloudformation/aws-resources.yaml"
+        template_parameters:
+          StackPrefixParameter: "{{ stack_prefix }}"
+          VPCIdParameter: "{{ aws.resources[env_type].vpc_id }}"
+          CreateArtifactsBucketParameter: "{{ aws.resources[env_type].create_s3_bucket_artifacts | bool }}"
+          ArtifactsBucketNameParameter: "{{ aws.resources[env_type].s3_bucket_artifacts }}"
+          Route53HostedZoneNameParameter: "{{ aws.resources[env_type].route53_hostedzone }}"
+          CorpNetworkCidrParameter: "{{ aws.resources[env_type].corp_network_cidr }}"

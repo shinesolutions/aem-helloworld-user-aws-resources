@@ -1,0 +1,76 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Conditions:
+  ArtifactsBucketCondition:
+    Fn::Equals:
+      - Ref: CreateArtifactsBucketParameter
+      - "True"
+
+Description: Create user AWS resources
+Parameters:
+  StackPrefixParameter:
+    Description: Stack Prefix for Forward Proxy stack
+    Type: String
+  VPCIdParameter:
+    Description: VPC ID
+    Type: String
+  CreateArtifactsBucketParameter:
+    Description: Toggle creating an S3 Bucket for storing dev team's artifacts (true/false)
+    Type: String
+  ArtifactsBucketNameParameter:
+    Type: String
+    Description: Name of the S3 Bucket where the artifacts are to be stored
+  Route53HostedZoneNameParameter:
+    Description: Route53 Hosted Zone Name the Record Set will be Created in
+    Type: String
+  CorpNetworkCidrParameter:
+    Description: IPv4 CIDR of corp network
+    Type: String
+
+Resources:
+
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Condition: ArtifactsBucketCondition
+    Properties:
+      BucketName:
+        Ref: ArtifactsBucketNameParameter
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  CorpNetworkSecurityGroup:
+    Properties:
+      GroupDescription: Corp Network Security Group
+      Tags:
+        - Key: Name
+          Value: Corp Network Security Group
+        - Key: StackPrefix
+          Value:
+            Ref: StackPrefixParameter
+      VpcId:
+        Ref: VPCIdParameter
+    Type: AWS::EC2::SecurityGroup
+  CorpNetworkSecurityGroupIngress0:
+    Properties:
+      CidrIp:
+        Ref: CorpNetworkCidrParameter
+      FromPort: '22'
+      GroupId:
+        Ref: CorpNetworkSecurityGroup
+      IpProtocol: tcp
+      ToPort: '22'
+    Type: AWS::EC2::SecurityGroupIngress
+
+  ForwardProxyRoute53RecordSet:
+    Properties:
+      HostedZoneName:
+        Ref: Route53HostedZoneNameParameter
+      Name:
+        Fn::Sub: forward-proxy.${Route53HostedZoneNameParameter}
+      ResourceRecords:
+        - 'shinesolutions.com'
+      TTL: 300
+      Type: CNAME
+    Type: AWS::Route53::RecordSet
