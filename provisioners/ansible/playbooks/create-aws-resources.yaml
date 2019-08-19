@@ -19,5 +19,6 @@
           VPCIdParameter: "{{ aws.resources[env_type].vpc_id }}"
           CreateArtifactsBucketParameter: "{{ aws.resources[env_type].create_s3_bucket_artifacts | bool }}"
           ArtifactsBucketNameParameter: "{{ aws.resources[env_type].s3_bucket_artifacts }}"
-          Route53HostedZoneNameParameter: "{{ aws.resources[env_type].route53_hostedzone }}"
+          Route53PublicHostedZoneNameParameter: "{{ aws.resources[env_type].route53_public_hostedzone }}"
+          Route53PrivateHostedZoneNameParameter: "{{ aws.resources[env_type].route53_private_hostedzone }}"
           CorpNetworkCidrParameter: "{{ aws.resources[env_type].corp_network_cidr }}"

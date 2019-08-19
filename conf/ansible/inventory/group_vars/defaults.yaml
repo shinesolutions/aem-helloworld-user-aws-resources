@@ -7,5 +7,6 @@ aws:
       vpc_id: vpc-2fc3014b
       create_s3_bucket_artifacts: true
       s3_bucket_artifacts: aem-opencloud-artifacts
-      route53_hostedzone: aemopencloud.cms.
+      route53_public_hostedzone: aemopencloud.space.
+      route53_private_hostedzone: aemopencloud.cms.
       corp_network_cidr: '1.2.3.4/32'

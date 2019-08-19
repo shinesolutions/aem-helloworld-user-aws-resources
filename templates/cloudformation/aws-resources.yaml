@@ -20,8 +20,11 @@ Parameters:
   ArtifactsBucketNameParameter:
     Type: String
     Description: Name of the S3 Bucket where the artifacts are to be stored
-  Route53HostedZoneNameParameter:
-    Description: Route53 Hosted Zone Name the Record Set will be Created in
+  Route53PublicHostedZoneNameParameter:
+    Description: Route53 Public Hosted Zone Name the public Record Set will be created in
+    Type: String
+  Route53PrivateHostedZoneNameParameter:
+    Description: Route53 Private Hosted Zone Name the private Record Set will be created in
     Type: String
   CorpNetworkCidrParameter:
     Description: IPv4 CIDR of corp network
@@ -66,9 +69,57 @@ Resources:
   ForwardProxyRoute53RecordSet:
     Properties:
       HostedZoneName:
-        Ref: Route53HostedZoneNameParameter
+        Ref: Route53PrivateHostedZoneNameParameter
       Name:
-        Fn::Sub: forward-proxy.${Route53HostedZoneNameParameter}
+        Fn::Sub: forward-proxy.${Route53PrivateHostedZoneNameParameter}
+      ResourceRecords:
+        - 'shinesolutions.com'
+      TTL: 300
+      Type: CNAME
+    Type: AWS::Route53::RecordSet
+
+  AdapttoConsolidatedRoute53RecordSet:
+    Properties:
+      HostedZoneName:
+        Ref: Route53PublicHostedZoneNameParameter
+      Name:
+        Fn::Sub: adaptto-con.${Route53PublicHostedZoneNameParameter}
+      ResourceRecords:
+        - 'shinesolutions.com'
+      TTL: 300
+      Type: CNAME
+    Type: AWS::Route53::RecordSet
+
+  AdapttoAuthConsolidatedRoute53RecordSet:
+    Properties:
+      HostedZoneName:
+        Ref: Route53PublicHostedZoneNameParameter
+      Name:
+        Fn::Sub: auth.adaptto-con.${Route53PublicHostedZoneNameParameter}
+      ResourceRecords:
+        - 'shinesolutions.com'
+      TTL: 300
+      Type: CNAME
+    Type: AWS::Route53::RecordSet
+
+  AdapttoPubConsolidatedRoute53RecordSet:
+    Properties:
+      HostedZoneName:
+        Ref: Route53PublicHostedZoneNameParameter
+      Name:
+        Fn::Sub: pub.adaptto-con.${Route53PublicHostedZoneNameParameter}
+      ResourceRecords:
+        - 'shinesolutions.com'
+      TTL: 300
+      Type: CNAME
+    Type: AWS::Route53::RecordSet
+
+  AdapttoFullSetRoute53RecordSet:
+    Properties:
+      HostedZoneName:
+        Ref: Route53PublicHostedZoneNameParameter
+      Name:
+        Fn::Sub: adaptto-fs.${Route53PublicHostedZoneNameParameter}
       ResourceRecords:
         - 'shinesolutions.com'
       TTL: 300
