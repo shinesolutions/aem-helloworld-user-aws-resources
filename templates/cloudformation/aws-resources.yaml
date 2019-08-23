@@ -125,3 +125,15 @@ Resources:
       TTL: 300
       Type: CNAME
     Type: AWS::Route53::RecordSet
+
+  AdapttoAuthFullSetRoute53RecordSet:
+    Properties:
+      HostedZoneName:
+        Ref: Route53PublicHostedZoneNameParameter
+      Name:
+        Fn::Sub: auth.adaptto-fs.${Route53PublicHostedZoneNameParameter}
+      ResourceRecords:
+        - 'shinesolutions.com'
+      TTL: 300
+      Type: CNAME
+    Type: AWS::Route53::RecordSet
