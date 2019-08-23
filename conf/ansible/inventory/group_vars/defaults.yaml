@@ -8,5 +8,6 @@ aws:
       create_s3_bucket_artifacts: true
       s3_bucket_artifacts: aem-opencloud-artifacts
       route53_public_hostedzone: aemopencloud.space.
-      route53_private_hostedzone: aemopencloud.cms.
+      aemopencloud_route53_private_hostedzone: aemopencloud.cms.
+      infracatalog_route53_private_hostedzone: infracatalog.srv.
       corp_network_cidr: '1.2.3.4/32'

@@ -23,8 +23,11 @@ Parameters:
   Route53PublicHostedZoneNameParameter:
     Description: Route53 Public Hosted Zone Name the public Record Set will be created in
     Type: String
-  Route53PrivateHostedZoneNameParameter:
-    Description: Route53 Private Hosted Zone Name the private Record Set will be created in
+  AemOpenCloudRoute53PrivateHostedZoneNameParameter:
+    Description: AEM OpenCloud Route53 Private Hosted Zone Name the private Record Set will be created in
+    Type: String
+  InfraCatalogRoute53PrivateHostedZoneNameParameter:
+    Description: Infra Catalog Route53 Private Hosted Zone Name the private Record Set will be created in
     Type: String
   CorpNetworkCidrParameter:
     Description: IPv4 CIDR of corp network
@@ -69,9 +72,9 @@ Resources:
   ForwardProxyRoute53RecordSet:
     Properties:
       HostedZoneName:
-        Ref: Route53PrivateHostedZoneNameParameter
+        Ref: InfraCatalogRoute53PrivateHostedZoneNameParameter
       Name:
-        Fn::Sub: forward-proxy.${Route53PrivateHostedZoneNameParameter}
+        Fn::Sub: forward-proxy.${InfraCatalogRoute53PrivateHostedZoneNameParameter}
       ResourceRecords:
         - 'shinesolutions.com'
       TTL: 300
