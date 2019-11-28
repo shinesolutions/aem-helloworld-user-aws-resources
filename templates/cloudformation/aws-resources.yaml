@@ -81,60 +81,60 @@ Resources:
       Type: CNAME
     Type: AWS::Route53::RecordSet
 
-  AdapttoConsolidatedRoute53RecordSet:
+  Demo1ConsolidatedRoute53RecordSet:
     Properties:
       HostedZoneName:
         Ref: Route53PublicHostedZoneNameParameter
       Name:
-        Fn::Sub: adaptto-con.${Route53PublicHostedZoneNameParameter}
+        Fn::Sub: demo1-con.${Route53PublicHostedZoneNameParameter}
       ResourceRecords:
         - 'shinesolutions.com'
       TTL: 300
       Type: CNAME
     Type: AWS::Route53::RecordSet
 
-  AdapttoAuthConsolidatedRoute53RecordSet:
+  Demo1AuthConsolidatedRoute53RecordSet:
     Properties:
       HostedZoneName:
         Ref: Route53PublicHostedZoneNameParameter
       Name:
-        Fn::Sub: auth.adaptto-con.${Route53PublicHostedZoneNameParameter}
+        Fn::Sub: auth.demo1-con.${Route53PublicHostedZoneNameParameter}
       ResourceRecords:
         - 'shinesolutions.com'
       TTL: 300
       Type: CNAME
     Type: AWS::Route53::RecordSet
 
-  AdapttoPubConsolidatedRoute53RecordSet:
+  Demo1PubConsolidatedRoute53RecordSet:
     Properties:
       HostedZoneName:
         Ref: Route53PublicHostedZoneNameParameter
       Name:
-        Fn::Sub: pub.adaptto-con.${Route53PublicHostedZoneNameParameter}
+        Fn::Sub: pub.demo1-con.${Route53PublicHostedZoneNameParameter}
       ResourceRecords:
         - 'shinesolutions.com'
       TTL: 300
       Type: CNAME
     Type: AWS::Route53::RecordSet
 
-  AdapttoFullSetRoute53RecordSet:
+  Demo1FullSetRoute53RecordSet:
     Properties:
       HostedZoneName:
         Ref: Route53PublicHostedZoneNameParameter
       Name:
-        Fn::Sub: adaptto-fs.${Route53PublicHostedZoneNameParameter}
+        Fn::Sub: demo1-fs.${Route53PublicHostedZoneNameParameter}
       ResourceRecords:
         - 'shinesolutions.com'
       TTL: 300
       Type: CNAME
     Type: AWS::Route53::RecordSet
 
-  AdapttoAuthFullSetRoute53RecordSet:
+  Demo1AuthFullSetRoute53RecordSet:
     Properties:
       HostedZoneName:
         Ref: Route53PublicHostedZoneNameParameter
       Name:
-        Fn::Sub: auth.adaptto-fs.${Route53PublicHostedZoneNameParameter}
+        Fn::Sub: auth.demo1-fs.${Route53PublicHostedZoneNameParameter}
       ResourceRecords:
         - 'shinesolutions.com'
       TTL: 300
