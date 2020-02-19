@@ -7,6 +7,7 @@ Conditions:
       - "True"
 
 Description: Create user AWS resources
+
 Parameters:
   StackPrefixParameter:
     Description: Stack Prefix for Forward Proxy stack
@@ -32,8 +33,19 @@ Parameters:
   CorpNetworkCidrParameter:
     Description: IPv4 CIDR of corp network
     Type: String
+  ShareCMKToAWSAccount:
+    Type: String
+    Description: AWS account ID to share the CMK to.
+    Default: 1234567890
+  ForwardProxyCidrParameter:
+    Description: IPv4 CIDR of forward proxy
+    Type: String
 
 Resources:
+
+  ################################################
+  # S3 bucket
+  ################################################
 
   ArtifactsBucket:
     Type: AWS::S3::Bucket
@@ -45,6 +57,10 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+
+  ################################################
+  # Dummy corp network secgroup.
+  ################################################
 
   CorpNetworkSecurityGroup:
     Properties:
@@ -69,6 +85,40 @@ Resources:
       ToPort: '22'
     Type: AWS::EC2::SecurityGroupIngress
 
+  ################################################
+  # Secgroup allowing access to Forward Proxy from all other private instances.
+  ################################################
+
+  ForwardProxyAccessSecurityGroup:
+    Properties:
+      GroupDescription: Forward Proxy Access Security Group
+      Tags:
+        - Key: Name
+          Value: Forward Proxy Access Security Group
+        - Key: StackPrefix
+          Value:
+            Ref: StackPrefixParameter
+      VpcId:
+        Ref: VPCIdParameter
+    Type: AWS::EC2::SecurityGroup
+
+  ForwardProxyAccessSecurityGroupEgress0:
+    Properties:
+      CidrIp:
+        Ref: ForwardProxyCidrParameter
+      FromPort: '3128'
+      GroupId:
+        Ref: ForwardProxyAccessSecurityGroup
+      IpProtocol: tcp
+      ToPort: '3128'
+    Type: AWS::EC2::SecurityGroupEgress
+
+  ################################################
+  # Route53 record for Forward Proxy
+  # These records are placeholders with initial value 'shinesolutions.com',
+  # the value will then be populated by real resource on Sandpit.
+  ################################################
+
   ForwardProxyRoute53RecordSet:
     Properties:
       HostedZoneName:
@@ -80,6 +130,12 @@ Resources:
       TTL: 300
       Type: CNAME
     Type: AWS::Route53::RecordSet
+
+  ################################################
+  # Route53 records for Demo 1 site
+  # These records are placeholders with initial value 'shinesolutions.com',
+  # the value will then be populated by real resources on Sandpit.
+  ################################################
 
   Demo1ConsolidatedRoute53RecordSet:
     Properties:
@@ -140,3 +196,480 @@ Resources:
       TTL: 300
       Type: CNAME
     Type: AWS::Route53::RecordSet
+
+  ################################################
+  # KMS key for EBS volume resources encryption
+  ################################################
+
+  EBSVolumeKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key for  EBS volume encryption.
+      Enabled: True
+      EnableKeyRotation: True
+      PendingWindowInDays: 30
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'Deny Key Deletion for all'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Action:
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:Delete*'
+            Resource: '*'
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:Get*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Tag*'
+              - 'kms:Update*'
+              - 'kms:Untag*'
+              - 'kms:CancelKeyDeletion'
+            Resource: '*'
+          - Sid: 'Allow usage of the Key in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: true
+  EBSVolumeKMSKeyAlias:
+    DependsOn:
+      - EBSVolumeKMSKey
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/aoc-EBSVolume-KMS
+      TargetKeyId: !Ref EBSVolumeKMSKey
+
+  ################################################
+  # KMS key for DynamoDB resources encryption
+  ################################################
+
+  DynamoDBKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key for  Dynamo DB encryption.
+      Enabled: True
+      EnableKeyRotation: True
+      PendingWindowInDays: 30
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'Deny Key Deletion for all'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Action:
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:Delete*'
+            Resource: '*'
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:Get*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Tag*'
+              - 'kms:Update*'
+              - 'kms:Untag*'
+              - 'kms:CancelKeyDeletion'
+            Resource: '*'
+          - Sid: 'Allow usage of the Key in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: true
+  DynamoDBKMSKeyAlias:
+    DependsOn:
+      - DynamoDBKMSKey
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/aoc-DynamoDB-KMS
+      TargetKeyId: !Ref DynamoDBKMSKey
+
+
+  ################################################
+  # KMS key for Lambda resources encryption
+  ################################################
+
+  LambdaKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key for  Lambda encryption.
+      Enabled: True
+      EnableKeyRotation: True
+      PendingWindowInDays: 30
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'Deny Key Deletion for all'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Action:
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:Delete*'
+            Resource: '*'
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:Get*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Tag*'
+              - 'kms:Update*'
+              - 'kms:Untag*'
+              - 'kms:CancelKeyDeletion'
+            Resource: '*'
+          - Sid: 'Allow usage of the Key in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: true
+  LambdaKMSKeyAlias:
+    DependsOn:
+      - LambdaKMSKey
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/aoc-Lambda-KMS
+      TargetKeyId: !Ref LambdaKMSKey
+
+  ################################################
+  # KMS key for S3 resources encryption
+  ################################################
+
+  S3KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key for  S3 encryption.
+      Enabled: True
+      EnableKeyRotation: True
+      PendingWindowInDays: 30
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'Deny Key Deletion for all'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Action:
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:Delete*'
+            Resource: '*'
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:Get*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Tag*'
+              - 'kms:Update*'
+              - 'kms:Untag*'
+              - 'kms:CancelKeyDeletion'
+            Resource: '*'
+          - Sid: 'Allow usage of the Key in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: true
+  S3KMSKeyAlias:
+    DependsOn:
+      - S3KMSKey
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/aoc-S3-KMS
+      TargetKeyId: !Ref S3KMSKey
+
+
+  ################################################
+  # KMS key for SNS resources encryption
+  ################################################
+
+  SNSKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS Key for  SNS encryption.
+      Enabled: True
+      EnableKeyRotation: True
+      PendingWindowInDays: 30
+      KeyUsage: ENCRYPT_DECRYPT
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: 'Deny Key Deletion for all'
+            Effect: Deny
+            Principal:
+              AWS: '*'
+            Action:
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:Delete*'
+            Resource: '*'
+          - Sid: 'Allow access for Key Administrators'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:Get*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Tag*'
+              - 'kms:Update*'
+              - 'kms:Untag*'
+              - 'kms:CancelKeyDeletion'
+            Resource: '*'
+          - Sid: 'Allow usage of the Key in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources in different AWS accounts'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${ShareCMKToAWSAccount}:root'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+          - Sid: 'Allow use of the key'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+          - Sid: 'Allow attachment of persistent resources'
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling'
+            Action:
+              - 'kms:CreateGrant'
+              - 'kms:ListGrants'
+              - 'kms:RevokeGrant'
+            Resource: '*'
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: true
+  SNSKMSKeyAlias:
+    DependsOn:
+      - SNSKMSKey
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/aoc-SNS-KMS
+      TargetKeyId: !Ref SNSKMSKey
