@@ -14,3 +14,4 @@ aws:
       # dummy sharing, pointing to Sandpit itself
       share_cmk_aws_account: 918473058104
       forward_proxy_cidr: 10.0.8.0/21
+      jumphost_cidr: 10.0.8.0/21

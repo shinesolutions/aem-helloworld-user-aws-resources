@@ -24,4 +24,5 @@
           InfraCatalogRoute53PrivateHostedZoneNameParameter: "{{ aws.resources[env_type].infracatalog_route53_private_hostedzone }}"
           CorpNetworkCidrParameter: "{{ aws.resources[env_type].corp_network_cidr }}"
           ForwardProxyCidrParameter: "{{ aws.resources[env_type].forward_proxy_cidr }}"
+          JumphostCidrParameter: "{{ aws.resources[env_type].jumphost_cidr }}"
           ShareCMKToAWSAccount: "{{ aws.resources[env_type].share_cmk_aws_account }}"

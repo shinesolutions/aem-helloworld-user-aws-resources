@@ -40,6 +40,9 @@ Parameters:
   ForwardProxyCidrParameter:
     Description: IPv4 CIDR of forward proxy
     Type: String
+  JumphostCidrParameter:
+    Description: IPv4 CIDR of forward proxy
+    Type: String
 
 Resources:
 
@@ -112,6 +115,34 @@ Resources:
       IpProtocol: tcp
       ToPort: '3128'
     Type: AWS::EC2::SecurityGroupEgress
+
+  ################################################
+  # Secgroup allowing access from Jumphost to all other private instances.
+  ################################################
+
+  JumphostAccessSecurityGroup:
+    Properties:
+      GroupDescription: Jumphost Access Security Group
+      Tags:
+        - Key: Name
+          Value: Jumphost Access Security Group
+        - Key: StackPrefix
+          Value:
+            Ref: StackPrefixParameter
+      VpcId:
+        Ref: VPCIdParameter
+    Type: AWS::EC2::SecurityGroup
+
+  JumphostAccessSecurityGroupIngress0:
+    Properties:
+      CidrIp:
+        Ref: JumphostCidrParameter
+      FromPort: '22'
+      GroupId:
+        Ref: JumphostAccessSecurityGroup
+      IpProtocol: tcp
+      ToPort: '22'
+    Type: AWS::EC2::SecurityGroupIngress
 
   ################################################
   # Route53 record for Forward Proxy
