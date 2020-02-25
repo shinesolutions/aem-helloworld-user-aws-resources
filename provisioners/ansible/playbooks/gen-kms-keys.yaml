@@ -1,0 +1,24 @@
+---
+- name: Create kms key ids configuration tasks
+  hosts: localhost
+  gather_facts: no
+  connection: local
+
+  tasks:
+
+    - name: Ensure stage directory exists
+      file: path=../../../stage/user-config/ state=directory
+
+    - name: Create Packer AEM and Stack Builder KMS Key IDs configuration file
+      stack_builder_ami_ids:
+        template_dir: "../../../templates/aws-resources.yaml"
+        region: "{{ aws.region }}"
+        ebs_key_alias: "item.ebs_key_alias"
+        dynamodb_key_alias: "item.dynamodb_key_alias"
+        lambda_key_alias: "item.lambda_key_alias"
+        s3_key_alias: "item.s3_key_alias"
+        sns_key_alias: "item.sns_key_alias"
+        out_file_packer: "../../../stage/user-config/packer-kms-key-ids.yaml"
+        out_file_stack_builder : "../../../stage/user-config/'stack-builder-kms-key-ids.yaml"
+      with_items:
+        - {ebs_key_alias: 'EBSVolumeKMSKeyAlias.Properties.AliasName', dynamodb_key_alias: 'DynamoDBKMSKeyAlias.Properties.AliasName', lambda_key_alias: 'LambdaKMSKeyAlias.Properties.AliasName', s3_key_alias: 'S3KMSKeyAlias.Properties.AliasName', sns_key_alias: 'SNSKMSKeyAlias.Properties.AliasName'}

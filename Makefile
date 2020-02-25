@@ -50,5 +50,11 @@ create-aws-resources:
 delete-aws-resources:
 	scripts/run-playbook-stack.sh delete-aws-resources "${env_type}" "${stack_prefix}"
 
+################################################################################
+# Generate AWS KMS key ids.
+################################################################################
+
+gen-kms-keys:
+    scripts/run-playbook-stack.sh gen-kms-keys
 
 .PHONY: ci clean deps lint package create-aws-resources delete-aws-resources
