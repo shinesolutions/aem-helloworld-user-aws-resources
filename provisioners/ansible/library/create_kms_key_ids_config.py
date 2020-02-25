@@ -33,7 +33,6 @@ def get_kms_key_arn (client, target_alias):
     if target_alias == "overwrite-me":
         return "overwrite-me"
     source_aliases = get_kms_source_aliases(client)
-    key_arn = ''
     key_id = find_kms_key_id(source_aliases, target_alias)
     if key_id == '':
         sys.stderr.write("No kms key id matched target alias: %s.\n" % target_alias)
@@ -53,7 +52,7 @@ def build_packer_aem_file(ebs_key_arn, out_file_name):
                             }
                         }
                     }
-                }, outfile, default_flow_style=False)
+                }, out_file, default_flow_style=False)
 
 def build_stack_builder_aem_file(ebs_key_arn, dynamodb_key_arn, lambda_key_arn, s3_key_arn, sns_key_arn, out_file_name):
     out_file = open(out_file_name, 'w')
@@ -87,7 +86,7 @@ def build_stack_builder_aem_file(ebs_key_arn, dynamodb_key_arn, lambda_key_arn, 
                             }
                         },
                     }
-                }, outfile, default_flow_style=False)
+                }, out_file, default_flow_style=False)
 
 def main():
     """
