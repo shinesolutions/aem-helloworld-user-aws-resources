@@ -1,6 +1,6 @@
 """
 This module generates a YAML Packer AEM config file and a YAML AEM AWS Stack Builder config file which contains the KMS IDs for all components.
-The KMS IDs are based on AWS KMS Alias name searched from template aws-resources.yaml file.
+The KMS IDs are based on AWS KMS Alias name searched from defaults vars.
 The YAML file is designed to be dropped directly in user configuration path.
 """
 #!/usr/bin/python
@@ -90,7 +90,7 @@ def build_stack_builder_aem_file(ebs_key_arn, dynamodb_key_arn, lambda_key_arn, 
 
 def main():
     """
-    Run stack_builder_ami_ids custom module.
+    Run create_kms_key_ids_config module.
     """
 
     module = AnsibleModule(
