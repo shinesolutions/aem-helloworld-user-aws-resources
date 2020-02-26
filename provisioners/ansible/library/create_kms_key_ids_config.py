@@ -8,20 +8,20 @@ The YAML file is designed to be dropped directly in user configuration path.
 import sys, json, boto3, yaml, argparse
 from ansible.module_utils.basic import *
 
-def get_kms_source_aliases(client):
+def aws_get_kms_source_aliases(client):
     StackResources = client.list_aliases(
     )
     aliases = StackResources['Aliases']
     return aliases
 
-def find_kms_key_id(source_aliases, target_alias):
+def get_kms_key_id(source_aliases, target_alias):
     key_id = ''
     for item in source_aliases:
         if item['AliasName'] == target_alias:
             key_id = item['TargetKeyId']
     return key_id
 
-def find_kms_key_id_arn(client, key_id):
+def aws_get_kms_key_arn(client, key_id):
     response = client.describe_key(
     KeyId = key_id
     )
@@ -32,12 +32,12 @@ def find_kms_key_id_arn(client, key_id):
 def get_kms_key_arn (client, target_alias):
     if target_alias == "overwrite-me":
         return "overwrite-me"
-    source_aliases = get_kms_source_aliases(client)
-    key_id = find_kms_key_id(source_aliases, target_alias)
+    source_aliases = aws_get_kms_source_aliases(client)
+    key_id = get_kms_key_id(source_aliases, target_alias)
     if key_id == '':
         sys.stderr.write("No kms key id matched target alias: %s.\n" % target_alias)
         raise SystemExit(1)
-    key_arn = str(find_kms_key_id_arn(client, key_id))
+    key_arn = str(aws_get_kms_key_arn(client, key_id))
     return key_arn
 
 def build_packer_aem_file(ebs_key_arn, out_file_name):
