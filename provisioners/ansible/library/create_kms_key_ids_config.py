@@ -63,28 +63,20 @@ def build_stack_builder_aem_file(ebs_key_arn, dynamodb_key_arn, lambda_key_arn, 
                     'encryption': {
                         'ebs_volume': {
                             'kms_key_id': ebs_key_arn,
-                            }
-                        },
-                    'dynamo_db': {
-                        'ebs_volume': {
+                            },
+                        'dynamo_db': {
                             'kms_key_id': dynamodb_key_arn,
-                            }
-                        },
-                    'lambda': {
-                        'ebs_volume': {
+                            },
+                        'lambda': {
                             'kms_key_id': lambda_key_arn,
-                            }
-                        },
-                    's3': {
-                        'ebs_volume': {
+                            },
+                        's3': {
                             'kms_key_id': s3_key_arn,
-                            }
-                        },
-                    'sns': {
-                        'ebs_volume': {
+                            },
+                        'sns': {
                             'kms_key_id': sns_key_arn,
-                            }
-                        },
+                            },
+                        }
                     }
                 }, out_file, default_flow_style=False)
 
