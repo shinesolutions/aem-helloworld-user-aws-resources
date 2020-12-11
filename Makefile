@@ -19,7 +19,7 @@ lint:
 	   templates/cloudformation/*.yaml
 	shellcheck scripts/*.sh
 	for playbook in provisioners/ansible/playbooks/*.yaml; do \
-		ANSIBLE_LIBRARY=conf/ansible/library ansible-playbook -vvv $$playbook --syntax-check; \
+		ANSIBLE_LIBRARY=provisioners/ansible/library ansible-playbook -vvv $$playbook --syntax-check; \
 	done
 
 package: stage
@@ -50,5 +50,11 @@ create-aws-resources:
 delete-aws-resources:
 	scripts/run-playbook-stack.sh delete-aws-resources "${env_type}" "${stack_prefix}"
 
+################################################################################
+# Generate AWS KMS key ids.
+################################################################################
+
+gen-kms-keys:
+	scripts/run-playbook-stack.sh gen-kms-keys "${env_type}" "${stack_prefix}"
 
 .PHONY: ci clean deps lint package create-aws-resources delete-aws-resources
